@@ -84,8 +84,14 @@ class App {
   constructor() {
     /* getting global position right from the begining */
     this._getPosition();
+
+    // getting data from local staorage after reload
+    this._getLocalStarage();
+
+    // event handlers
     form.addEventListener('submit', this._newWorkOut.bind(this));
     inputType.addEventListener('change', this._toggleElevationFiled.bind(this));
+    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   }
 
   _getPosition() {
@@ -127,6 +133,9 @@ class App {
     /* Allowing to put markers on click on screen */
     // Handlings clicks on map
     this.#map.on('click', this._showForm.bind(this));
+
+    // rendering old workouts from localstorage
+    this.#workouts.forEach(work => this._renderWorkoutMarker(work));
   }
 
   _showForm(mapE) {
@@ -216,6 +225,8 @@ class App {
     this._renderWorkout(workout);
 
     this._hideForm();
+
+    this._setLocalStorage();
   }
 
   _renderWorkoutMarker(workout) {
@@ -290,6 +301,26 @@ class App {
     form.insertAdjacentHTML('afterend', html);
   }
 
+  _moveToPopup(e) {
+    const workoutEl = e.target.closest('.workout');
+    console.log(workoutEl);
+
+    if (!workoutEl) return;
+
+    const workout = this.#workouts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+
+    // moving to plase on map
+    // first arg is where, second is zoom
+    this.#map.setView(workout.coords, 13, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
+  }
+
   _hideForm() {
     inputDistance.value =
       inputDuration.value =
@@ -300,6 +331,28 @@ class App {
     form.style.display = 'none';
     form.classList.add('hidden');
     setTimeout(() => (form.style.display = 'grid'), 1000);
+  }
+
+  // saving info about workouts with using localstarage API
+  _setLocalStorage() {
+    // JSON.stringify(this) converts any object into string
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+  }
+
+  _getLocalStarage() {
+    // objects from localstorage will not inherit all the methods
+    const data = JSON.parse(localStorage.getItem('workouts'));
+
+    if (!data) return;
+
+    this.#workouts = data;
+
+    this.#workouts.forEach(work => this._renderWorkout(work));
+  }
+
+  reset() {
+    localStorage.removeItem('workout');
+    location.reload();
   }
 }
 
